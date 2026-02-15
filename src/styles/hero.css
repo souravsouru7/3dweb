@@ -145,3 +145,110 @@ body {
     transform: translateY(0);
     filter: blur(0px);
 }
+
+/* Navbar Styles */
+.navbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    padding: 20px 40px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    z-index: 100;
+    background: transparent;
+    box-sizing: border-box;
+    transition: background 0.3s ease;
+}
+
+.nav-logo {
+    color: var(--bakery-gold);
+    font-family: 'Playfair Display', serif;
+    font-size: 1.5rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    text-decoration: none;
+}
+
+.nav-links {
+    display: flex;
+    gap: 40px;
+}
+
+.nav-link {
+    color: rgba(255, 255, 255, 0.8);
+    text-decoration: none;
+    font-family: 'Inter Tight', sans-serif;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    position: relative;
+    transition: color 0.3s;
+}
+
+.nav-link:hover {
+    color: var(--bakery-gold);
+}
+
+.nav-cta-btn {
+    background: transparent;
+    border: 1px solid rgba(199, 161, 122, 0.4);
+    color: var(--bakery-gold);
+    padding: 10px 24px;
+    border-radius: 4px;
+    font-family: 'Inter Tight', sans-serif;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.nav-cta-btn:hover {
+    background: var(--bakery-gold);
+    color: var(--bakery-dark);
+}
+
+.mobile-toggle {
+    display: none;
+    background: transparent;
+    border: none;
+    color: var(--bakery-gold);
+    font-size: 1.5rem;
+    cursor: pointer;
+}
+
+/* Mobile Media Queries */
+@media (max-width: 768px) {
+    .navbar {
+        padding: 15px 20px;
+    }
+
+    .mobile-toggle {
+        display: block;
+    }
+
+    .nav-links {
+        position: fixed;
+        top: 0;
+        right: -100%;
+        width: 80%;
+        height: 100vh;
+        background: var(--bakery-dark);
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        transition: right 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+        z-index: 99;
+        box-shadow: -10px 0 30px rgba(0, 0, 0, 0.5);
+    }
+
+    .nav-links.active {
+        right: 0;
+    }
+
+    .nav-cta-btn {
+        display: none;
+    }
+}
