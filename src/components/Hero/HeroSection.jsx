@@ -16,8 +16,8 @@ const HeroSection = () => {
 
     const { getFrame, manageCache } = useImagePreloader(); // Index 0 just to init hook
 
-    const totalFrames = getTotalFrames();
-    const scrollHeight = totalFrames * 5; // 5px per frame
+    const totalFrames = getTotalFrames(); // 768 frames total (4 sequences × 192)
+    const scrollHeight = totalFrames * 10; // 10px per frame = 7,680px total scroll
 
     useEffect(() => {
         // Passive scroll listener
