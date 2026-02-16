@@ -1,5 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import HeroSection from './components/Hero/HeroSection';
+import ProductShowcase from './components/Products/ProductShowcase';
+import TrustSection from './components/Trust/TrustSection';
+import CommunitySection from './components/Community/CommunitySection';
+import CTASection from './components/CTA/CTASection';
+import Footer from './components/Footer/Footer';
 import Navbar from './components/UI/Navbar';
 import Loader from './components/UI/Loader';
 import { useImagePreloader } from './hooks/useImagePreloader';
@@ -24,18 +29,17 @@ function App() {
   }, [preloadInitialSequence]);
 
   return (
-    <div className="app">
+    <div className="app bg-[#0a0a0a]">
       <Loader progress={loadingProgress} onComplete={() => setIsLoaded(true)} />
 
-      {/* Show Navbar and Hero only, but maybe keep them mounted behind loader for instant reveal? */}
-      {/* Opacity transition is handled by the Loader's fade out, but let's ensure visibility */}
-      <div style={{ opacity: isLoaded ? 1 : 0, transition: 'opacity 0.5s ease-in' }}>
+      <div style={{ opacity: isLoaded ? 1 : 0, transition: 'opacity 0.8s ease-in-out' }}>
         <Navbar />
         <HeroSection />
-
-        <div style={{ height: '50vh', background: '#1a1a1a', color: '#c7a17a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <p style={{ fontFamily: "'Inter Tight', sans-serif" }}>Keep scrolling for the Bakery Collection...</p>
-        </div>
+        <ProductShowcase />
+        <TrustSection />
+        <CommunitySection />
+        <CTASection />
+        <Footer />
       </div>
     </div>
   );

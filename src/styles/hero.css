@@ -1,8 +1,9 @@
 :root {
-    --bakery-dark: #1a1a1a;
+    --bakery-dark: #0a0a0a;
     --bakery-gold: #c7a17a;
-    --bakery-warm: #f4e4bc;
-    --overlay-dark: rgba(0, 0, 0, 0.4);
+    --bakery-accent: #d4af37;
+    --bakery-warm: #f5f0e1;
+    --overlay-dark: rgba(0, 0, 0, 0.6);
 }
 
 body {
