@@ -12,11 +12,14 @@ function App() {
 
   useEffect(() => {
     // Start preloading the first sequence (192 frames)
+    // Since cache is static/global, this will fill the map for HeroSection
     preloadInitialSequence((progress) => {
       setLoadingProgress(progress);
     }).then(() => {
-      // Optional: small delay for dramatic effect
-      setTimeout(() => setIsLoaded(true), 500);
+      // Small delay for smooth transition
+      setTimeout(() => {
+        setIsLoaded(true);
+      }, 800);
     });
   }, [preloadInitialSequence]);
 

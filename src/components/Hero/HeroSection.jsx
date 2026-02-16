@@ -14,100 +14,97 @@ const HeroSection = () => {
         lastFrameIndex: -1
     });
 
-    const { getFrame, manageCache } = useImagePreloader(); // Index 0 just to init hook
+    const { getFrame, manageCache } = useImagePreloader();
 
-    const totalFrames = getTotalFrames(); // 768 frames total (4 sequences × 192)
-    const scrollHeight = totalFrames * 10; // 10px per frame = 7,680px total scroll
+    const totalFrames = getTotalFrames();
+    const scrollHeight = totalFrames * 10;
 
+    // Handle initial load and caching
     useEffect(() => {
+        // Start preloading the very first frame immediately
+        manageCache(0);
+
         // Passive scroll listener
         const handleScroll = () => {
             if (!containerRef.current) return;
-
-            // Calculate scroll progress relative to the container/window
             const { scrollTop, scrollHeight, clientHeight } = document.documentElement;
             const maxScroll = scrollHeight - clientHeight;
             const progress = maxScroll > 0 ? Math.min(Math.max(scrollTop / maxScroll, 0), 1) : 0;
             state.current.targetProgress = progress;
 
-            // Preload & Cleanup based on scroll
             const targetFrameIndex = Math.floor(progress * (totalFrames - 1));
             manageCache(targetFrameIndex);
         };
 
         window.addEventListener('scroll', handleScroll, { passive: true });
+        handleScroll(); // Initial position check
 
-        // Resize handler for canvas
+        // Resize handler
         const handleResize = () => {
             if (canvasRef.current) {
-                // High DPI support
                 const dpr = window.devicePixelRatio || 1;
                 canvasRef.current.width = window.innerWidth * dpr;
                 canvasRef.current.height = window.innerHeight * dpr;
-
-                // Scale back down with CSS
                 canvasRef.current.style.width = `${window.innerWidth}px`;
                 canvasRef.current.style.height = `${window.innerHeight}px`;
-
-                // Force redraw if needed (loop handles it mostly)
             }
         };
         window.addEventListener('resize', handleResize);
-        handleResize(); // Init
+        handleResize();
 
         // Animation Loop
         let rafId;
         const loop = () => {
-            // Lerp - Lower value = smoother/heavier feel
             const diff = state.current.targetProgress - state.current.currentProgress;
-            // Changed from 0.08 to 0.05 for "buttery" feel
             state.current.currentProgress += diff * 0.05;
 
-            // Clamp small values to stop micro-jitter
             if (Math.abs(diff) < 0.0001) {
                 state.current.currentProgress = state.current.targetProgress;
             }
 
             const frameIndex = Math.floor(state.current.currentProgress * (totalFrames - 1));
 
-            // Optimize: only draw if index changed
-            if (frameIndex !== state.current.lastFrameIndex || true) {
-                const img = getFrame(frameIndex);
-                const canvas = canvasRef.current;
-                if (canvas && img) {
+            // Draw logic
+            const img = getFrame(frameIndex);
+            const canvas = canvasRef.current;
+
+            if (canvas && img) {
+                const ctx = canvas.getContext('2d');
+                const dpr = window.devicePixelRatio || 1;
+                const cw = canvas.width;
+                const ch = canvas.height;
+                const iw = img.width;
+                const ih = img.height;
+
+                const scale = Math.max(cw / iw, ch / ih);
+                const x = (cw - iw * scale) / 2;
+                const y = (ch - ih * scale) / 2;
+
+                ctx.drawImage(img, x, y, iw * scale, ih * scale);
+                state.current.lastFrameIndex = frameIndex;
+            } else if (canvas && state.current.lastFrameIndex !== -1) {
+                // FALLBACK: If current frame isn't loaded, keep the last one to avoid black screen
+                const lastImg = getFrame(state.current.lastFrameIndex);
+                if (lastImg) {
                     const ctx = canvas.getContext('2d');
-
-                    // Clear before draw? Not strictly needed for cover but good practice
-                    // ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-                    // High DPI aware drawing
-                    const dpr = window.devicePixelRatio || 1;
-                    const cw = canvas.width;  // Actual pixels
-                    const ch = canvas.height; // Actual pixels
-                    const iw = img.width;
-                    const ih = img.height;
-
+                    const cw = canvas.width;
+                    const ch = canvas.height;
+                    const iw = lastImg.width;
+                    const ih = lastImg.height;
                     const scale = Math.max(cw / iw, ch / ih);
                     const x = (cw - iw * scale) / 2;
                     const y = (ch - ih * scale) / 2;
-
-                    ctx.drawImage(img, x, y, iw * scale, ih * scale);
+                    ctx.drawImage(lastImg, x, y, iw * scale, ih * scale);
                 }
-                state.current.lastFrameIndex = frameIndex;
             }
 
             // Sync Overlay
             if (overlayRef.current) {
                 overlayRef.current.style.setProperty('--scroll-progress', state.current.currentProgress);
-
                 const p = state.current.currentProgress;
-                const overlay = overlayRef.current;
-                const children = overlay.children;
+                const children = overlayRef.current.children;
                 if (children.length >= 3) {
-                    // ... (keep existing overlay logic relies on CSS classes or direct style)
-                    // We can reuse the same logic
-
-                    // 1. Headline
+                    // Introduction Phase
                     const headline = children[0];
                     if (p > 0.02 && p < 0.25) {
                         headline.classList.remove('hidden');
@@ -117,7 +114,7 @@ const HeroSection = () => {
                         headline.classList.remove('visible');
                     }
 
-                    // 2. Subtext
+                    // Midway Phase
                     const subtext = children[1];
                     if (p > 0.35 && p < 0.65) {
                         subtext.classList.remove('hidden');
@@ -127,7 +124,7 @@ const HeroSection = () => {
                         subtext.classList.remove('visible');
                     }
 
-                    // 3. CTA
+                    // Finale Phase
                     const cta = children[2];
                     if (p > 0.75) {
                         cta.classList.remove('hidden');
@@ -150,6 +147,7 @@ const HeroSection = () => {
             cancelAnimationFrame(rafId);
         };
     }, [totalFrames, getFrame, manageCache]);
+
 
     return (
         <div className="hero-container" ref={containerRef} style={{ height: `${scrollHeight}px` }}>

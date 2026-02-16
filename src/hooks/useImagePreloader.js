@@ -1,56 +1,56 @@
 import { useRef, useEffect, useCallback } from 'react';
 
+const CLOUDINARY_BASE = "https://res.cloudinary.com/dpqgwmctl/image/upload/f_auto,q_auto,w_1280/bakery";
+
 const SEQUENCES = [
-    { path: '/seq1', count: 192, startFrame: 0 },
-    { path: '/seq2', count: 192, startFrame: 192 },
-    { path: '/seq3', count: 192, startFrame: 384 },
-    { path: '/seq4', count: 192, startFrame: 576 },
+    { path: 'seq1', count: 192, startFrame: 0 },
+    { path: 'seq2', count: 192, startFrame: 192 },
+    { path: 'seq3', count: 192, startFrame: 384 },
+    { path: 'seq4', count: 192, startFrame: 576 },
 ];
 
 const TOTAL_FRAMES = 192 * 4;
 const BUFFER_SIZE = 60; // Keep 60 frames behind and ahead
-const BATCH_SIZE = 10;  // Load 10 frames at a time
+
+// Static cache shared across all instances of the hook
+const globalImagesMap = new Map();
+const globalLoadingSet = new Set();
 
 export const useImagePreloader = () => {
-    // 1. Use Ref instead of State to store images. 
-    // This prevents React from re-rendering the component 700+ times as images load.
-    const imagesRef = useRef(new Map());
-    const loadingRef = useRef(new Set());
-
     // 2. Load a specific frame
     const loadFrame = useCallback((globalIndex) => {
         return new Promise((resolve) => {
-            if (imagesRef.current.has(globalIndex)) {
-                resolve(imagesRef.current.get(globalIndex));
+            if (globalImagesMap.has(globalIndex)) {
+                resolve(globalImagesMap.get(globalIndex));
                 return;
             }
-            if (loadingRef.current.has(globalIndex) || globalIndex < 0 || globalIndex >= TOTAL_FRAMES) {
+            if (globalLoadingSet.has(globalIndex) || globalIndex < 0 || globalIndex >= TOTAL_FRAMES) {
                 resolve(null);
                 return;
             }
 
             // Determine path
             let seqIndex = 0;
-            let localIndex = globalIndex;
-            if (globalIndex >= 576) { seqIndex = 3; localIndex = globalIndex - 576; }
-            else if (globalIndex >= 384) { seqIndex = 2; localIndex = globalIndex - 384; }
-            else if (globalIndex >= 192) { seqIndex = 1; localIndex = globalIndex - 192; }
+            if (globalIndex >= 576) { seqIndex = 3; }
+            else if (globalIndex >= 384) { seqIndex = 2; }
+            else if (globalIndex >= 192) { seqIndex = 1; }
 
             const seqPath = SEQUENCES[seqIndex].path;
+            const localIndex = globalIndex - (seqIndex * 192);
             const frameNumber = (localIndex + 1).toString().padStart(5, '0');
-            const src = `${seqPath}/${frameNumber}.png`;
+            const src = `${CLOUDINARY_BASE}/${seqPath}/${frameNumber}`;
 
-            loadingRef.current.add(globalIndex);
+            globalLoadingSet.add(globalIndex);
 
             const img = new Image();
             img.src = src;
             img.onload = () => {
-                imagesRef.current.set(globalIndex, img);
-                loadingRef.current.delete(globalIndex);
+                globalImagesMap.set(globalIndex, img);
+                globalLoadingSet.delete(globalIndex);
                 resolve(img);
             };
             img.onerror = () => {
-                loadingRef.current.delete(globalIndex);
+                globalLoadingSet.delete(globalIndex);
                 resolve(null);
             };
         });
@@ -64,7 +64,7 @@ export const useImagePreloader = () => {
         let loaded = 0;
 
         // Load in chunks to not freeze UI completely
-        const chunkSize = 10;
+        const chunkSize = 15; // Slightly larger chunk for faster start
         for (let i = 0; i < count; i += chunkSize) {
             if (cancelLoadRef.current) break;
 
@@ -82,35 +82,34 @@ export const useImagePreloader = () => {
     }, [loadFrame]);
 
     // 3. Sliding Window Manager
-    // This function should be called by the scroll loop to maintain the cache
     const manageCache = useCallback((currentIndex) => {
         const start = Math.max(0, currentIndex - BUFFER_SIZE);
         const end = Math.min(TOTAL_FRAMES - 1, currentIndex + BUFFER_SIZE);
 
         // Preload visible range + buffer
         for (let i = start; i <= end; i++) {
-            loadFrame(i); // Fire and forget in background
+            loadFrame(i);
         }
 
-        // Cleanup frames that are far away to free memory
-        // RAM usage: 700 frames * ~5MB = 3.5GB. We MUST cleanup.
-        for (const key of imagesRef.current.keys()) {
-            if (key < start - 20 || key > end + 20) {
-                const img = imagesRef.current.get(key);
+        // Cleanup far away frames
+        for (const key of globalImagesMap.keys()) {
+            if (key < start - 40 || key > end + 40) {
+                const img = globalImagesMap.get(key);
                 if (img) {
-                    img.src = ''; // Help GC
+                    img.src = '';
                     img.onload = null;
                 }
-                imagesRef.current.delete(key);
+                globalImagesMap.delete(key);
             }
         }
     }, [loadFrame]);
 
     const getFrame = useCallback((index) => {
-        return imagesRef.current.get(index);
+        return globalImagesMap.get(index);
     }, []);
 
     return { getFrame, manageCache, preloadInitialSequence };
 };
 
 export const getTotalFrames = () => TOTAL_FRAMES;
+
